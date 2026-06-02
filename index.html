@@ -1,0 +1,329 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo List</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #333;
+}
+
+.app {
+  width: 100%;
+  max-width: 500px;
+}
+
+h1 {
+  text-align: center;
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 300;
+  letter-spacing: 2px;
+  margin-bottom: 28px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  overflow: hidden;
+}
+
+.input-row {
+  display: flex;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.input-row input {
+  flex: 1;
+  padding: 16px 20px;
+  font-size: 1rem;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+.input-row input::placeholder { color: #bbb; }
+
+.input-row button {
+  padding: 16px 24px;
+  background: #667eea;
+  color: #fff;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.input-row button:hover { background: #5a6fd6; }
+
+.list { list-style: none; }
+
+.list li {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.15s;
+}
+
+.list li:hover { background: #fafafa; }
+
+.list li.completed .text {
+  text-decoration: line-through;
+  color: #bbb;
+}
+
+.checkbox {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #d0d0d0;
+  border-radius: 50%;
+  margin-right: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.checkbox:hover { border-color: #667eea; }
+
+.list li.completed .checkbox {
+  border-color: #667eea;
+  background: #667eea;
+}
+
+.checkbox::after {
+  content: "✓";
+  color: #fff;
+  font-size: 13px;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s;
+}
+
+.list li.completed .checkbox::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.text {
+  flex: 1;
+  font-size: 1rem;
+  word-break: break-word;
+}
+
+.delete-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #ccc;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  color: #e74c3c;
+  background: #fdf0ef;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  font-size: 0.85rem;
+  color: #999;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filters {
+  display: flex;
+  gap: 4px;
+}
+
+.filters button {
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #999;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.filters button:hover { color: #667eea; }
+
+.filters button.active {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.clear-btn {
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.clear-btn:hover { color: #e74c3c; }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #ccc;
+}
+
+.empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+.empty-state p { font-size: 0.95rem; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>TODO</h1>
+  <div class="card">
+    <div class="input-row">
+      <input id="todoInput" type="text" placeholder="添加新任务..." maxlength="200" autofocus>
+      <button id="addBtn">添加</button>
+    </div>
+    <ul id="todoList" class="list"></ul>
+    <div class="footer" id="footer">
+      <span id="count"></span>
+      <div class="filters">
+        <button data-filter="all" class="active">全部</button>
+        <button data-filter="active">未完成</button>
+        <button data-filter="completed">已完成</button>
+      </div>
+      <button class="clear-btn" id="clearBtn">清除已完成</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const input = document.getElementById("todoInput");
+const addBtn = document.getElementById("addBtn");
+const list = document.getElementById("todoList");
+const countSpan = document.getElementById("count");
+const clearBtn = document.getElementById("clearBtn");
+const filterBtns = document.querySelectorAll(".filters button");
+
+let todos = JSON.parse(localStorage.getItem("todos") || "[]");
+let filter = "all";
+
+function save() {
+  localStorage.setItem("todos", JSON.stringify(todos));
+}
+
+function render() {
+  list.innerHTML = "";
+
+  const filtered = todos.filter(t => {
+    if (filter === "active") return !t.done;
+    if (filter === "completed") return t.done;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    const emptyText = todos.length === 0
+      ? "还没有任务，快添加一个吧 ✨"
+      : "没有匹配的任务";
+    list.innerHTML = `<li class="empty-state" style="justify-content:center"><div><div class="icon">📝</div><p>${emptyText}</p></div></li>`;
+  } else {
+    filtered.forEach(t => {
+      const li = document.createElement("li");
+      if (t.done) li.className = "completed";
+
+      const box = document.createElement("span");
+      box.className = "checkbox";
+      box.addEventListener("click", () => toggle(t.id));
+
+      const text = document.createElement("span");
+      text.className = "text";
+      text.textContent = t.text;
+
+      const del = document.createElement("button");
+      del.className = "delete-btn";
+      del.textContent = "×";
+      del.addEventListener("click", () => remove(t.id));
+
+      li.appendChild(box);
+      li.appendChild(text);
+      li.appendChild(del);
+      list.appendChild(li);
+    });
+  }
+
+  const activeCount = todos.filter(t => !t.done).length;
+  countSpan.textContent = activeCount === 0 ? "全部完成 🎉" : `${activeCount} 项未完成`;
+  clearBtn.style.visibility = todos.some(t => t.done) ? "visible" : "hidden";
+}
+
+function add() {
+  const text = input.value.trim();
+  if (!text) return;
+  todos.push({ id: Date.now(), text, done: false });
+  input.value = "";
+  save();
+  render();
+}
+
+function toggle(id) {
+  const todo = todos.find(t => t.id === id);
+  if (todo) {
+    todo.done = !todo.done;
+    save();
+    render();
+  }
+}
+
+function remove(id) {
+  todos = todos.filter(t => t.id !== id);
+  save();
+  render();
+}
+
+function clearCompleted() {
+  todos = todos.filter(t => !t.done);
+  save();
+  render();
+}
+
+function setFilter(f) {
+  filter = f;
+  filterBtns.forEach(b => b.classList.toggle("active", b.dataset.filter === f));
+  render();
+}
+
+addBtn.addEventListener("click", add);
+input.addEventListener("keydown", e => { if (e.key === "Enter") add(); });
+clearBtn.addEventListener("click", clearCompleted);
+filterBtns.forEach(b => b.addEventListener("click", () => setFilter(b.dataset.filter)));
+
+render();
+</script>
+</body>
+</html>
